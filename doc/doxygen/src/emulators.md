@@ -94,7 +94,7 @@ it possible to open the PTY file in a regular serial port.
 [Renode](http://renode.io) is a virtual development tool for multinode embedded
 networks (both wired and wireless) enabling a scalable workflow for building
 effective, tested and secure IoT systems, created by
-Antmicro](http://antmicro.com/blog/2017/08/renode-press-release/).
+[Antmicro](http://antmicro.com/blog/2017/08/renode-press-release/).
 It can easily be used to run applications on a broad range of embedded platforms
 without any changes in the code itself, as if you were running on real
 hardware - but with more possibilities.
