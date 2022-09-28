@@ -61,7 +61,7 @@ void gcoap_forward_proxy_init(void)
     gcoap_register_listener(&forward_proxy_listener);
 }
 
-static client_ep_t *_allocate_client_ep(sock_udp_ep_t *ep)
+static client_ep_t *_allocate_client_ep(const sock_udp_ep_t *ep)
 {
     client_ep_t *cep;
     for (cep = _client_eps;
@@ -102,7 +102,7 @@ static ssize_t _forward_proxy_handler(coap_pkt_t *pdu, uint8_t *buf,
                                       size_t len, coap_request_ctx_t *ctx)
 {
     int pdu_len;
-    sock_udp_ep_t *remote = coap_request_ctx_get_context(ctx);
+    const sock_udp_ep_t *remote = coap_request_ctx_get_remote_udp(ctx);
 
     pdu_len = gcoap_forward_proxy_request_process(pdu, remote);
 
@@ -174,16 +174,8 @@ static bool _parse_endpoint(sock_udp_ep_t *remote,
     }
     memcpy(&remote->addr.ipv6[0], &addr.u8[0], sizeof(addr.u8));
 
-    if (urip->port_len) {
-        /* copy port string into scratch for atoi */
-        memcpy(scratch, urip->port, urip->port_len);
-        scratch[urip->port_len] = '\0';
-
-        remote->port = atoi(scratch);
-
-        if (remote->port == 0) {
-          return false;
-        }
+    if (urip->port != 0) {
+        remote->port = urip->port;
     }
     else {
         remote->port = COAP_PORT;
@@ -210,8 +202,19 @@ static void _forward_resp_handler(const gcoap_request_memo_t *memo,
             /* check if we can just send 2.03 Valid instead */
             if ((cep->req_etag_len == coap_opt_get_opaque(pdu, COAP_OPT_ETAG, &resp_etag)) &&
                 (memcmp(cep->req_etag, resp_etag, cep->req_etag_len) == 0)) {
+                uint32_t max_age;
+
+                if (coap_opt_get_uint(pdu, COAP_OPT_MAX_AGE, &max_age) < 0) {
+                    /* use default,
+                     * see https://datatracker.ietf.org/doc/html/rfc7252#section-5.10.5 */
+                    max_age = 60U;
+                }
                 gcoap_resp_init(pdu, (uint8_t *)pdu->hdr, buf_len, COAP_CODE_VALID);
                 coap_opt_add_opaque(pdu, COAP_OPT_ETAG, cep->req_etag, cep->req_etag_len);
+                if (max_age != 60U) {
+                    /* only include Max-Age option if it is not the default value */
+                    coap_opt_add_uint(pdu, COAP_OPT_MAX_AGE, max_age);
+                }
                 coap_opt_finish(pdu, COAP_OPT_FINISH_NONE);
             }
         }
@@ -376,7 +379,7 @@ static int _gcoap_forward_proxy_via_coap(coap_pkt_t *client_pkt,
 }
 
 int gcoap_forward_proxy_request_process(coap_pkt_t *pkt,
-                                        sock_udp_ep_t *client) {
+                                        const sock_udp_ep_t *client) {
     char *uri;
     uri_parser_result_t urip;
     ssize_t optlen = 0;

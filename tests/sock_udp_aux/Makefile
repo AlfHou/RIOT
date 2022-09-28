@@ -9,12 +9,12 @@ USEMODULE += fmt
 USEMODULE += gnrc_icmpv6_echo
 USEMODULE += gnrc_ipv6_default
 USEMODULE += netdev_default
-USEMODULE += gnrc_sock_udp
+USEMODULE += sock_udp
 USEMODULE += netstats_ipv6
 USEMODULE += netstats_l2
 USEMODULE += ps
 USEMODULE += shell
-USEMODULE += shell_commands
+USEMODULE += shell_cmds_default
 
 USEMODULE += sock_aux_local
 USEMODULE += sock_aux_rssi

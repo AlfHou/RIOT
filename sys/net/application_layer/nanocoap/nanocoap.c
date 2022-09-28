@@ -454,19 +454,14 @@ ssize_t coap_tree_handler(coap_pkt_t *pkt, uint8_t *resp_buf,
         }
 
         int res = coap_match_path(resource, uri);
-        if (res > 0) {
+        if (res != 0) {
             continue;
         }
-        else if (res < 0) {
-            break;
-        }
-        else {
-            coap_request_ctx_t ctx = {
-                .resource = resource,
-                .context  = resource->context,
-            };
-            return resource->handler(pkt, resp_buf, resp_buf_len, &ctx);
-        }
+
+        coap_request_ctx_t ctx = {
+            .resource = resource,
+        };
+        return resource->handler(pkt, resp_buf, resp_buf_len, &ctx);
     }
 
     return coap_build_reply(pkt, COAP_CODE_404, resp_buf, resp_buf_len, 0);
@@ -1244,7 +1239,7 @@ const char *coap_request_ctx_get_path(const coap_request_ctx_t *ctx)
 
 void *coap_request_ctx_get_context(const coap_request_ctx_t *ctx)
 {
-    return ctx->context;
+    return ctx->resource->context;
 }
 
 uint32_t coap_request_ctx_get_tl_type(const coap_request_ctx_t *ctx)
@@ -1254,5 +1249,15 @@ uint32_t coap_request_ctx_get_tl_type(const coap_request_ctx_t *ctx)
 #else
     (void)ctx;
     return 0;
+#endif
+}
+
+const sock_udp_ep_t *coap_request_ctx_get_remote_udp(const coap_request_ctx_t *ctx)
+{
+#ifdef MODULE_GCOAP
+    return ctx->remote;
+#else
+    (void)ctx;
+    return NULL;
 #endif
 }

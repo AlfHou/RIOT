@@ -706,19 +706,12 @@ static size_t _handle_req(gcoap_socket_t *sock, coap_pkt_t *pdu, uint8_t *buf,
     }
 
     ssize_t pdu_len;
-    char *offset;
 
     coap_request_ctx_t ctx = {
         .resource = resource,
         .tl_type = (uint32_t)sock->type,
+        .remote = remote,
     };
-
-    if (coap_get_proxy_uri(pdu, &offset) > 0) {
-        ctx.context = remote;
-    }
-    else {
-        ctx.context = resource->context;
-    }
 
     pdu_len = resource->handler(pdu, buf, len, &ctx);
     if (pdu_len < 0) {
@@ -751,12 +744,8 @@ static int _request_matcher_default(gcoap_listener_t *listener,
         int res = coap_match_path(*resource, uri);
 
         /* URI mismatch */
-        if (res > 0) {
+        if (res != 0) {
             continue;
-        }
-        /* resources expected in alphabetical order */
-        else if (res < 0) {
-            break;
         }
 
         /* potential match, check for method */
@@ -1334,7 +1323,7 @@ static ssize_t _cache_check(const uint8_t *buf, size_t len,
                     uint8_t *start = coap_find_option(&req, COAP_OPT_ETAG);
                     /* option length must always be <= COAP_ETAG_LENGTH_MAX = 8 < 12, so the length
                      * is encoded in the first byte, see also RFC 7252, section 3.1 */
-                    *start &= 0x0f;
+                    *start &= 0xf0;
                     /* first if around here should make sure we are <= 8 < 0xf, so we don't need to
                      * bitmask resp_etag_len */
                     *start |= (uint8_t)resp_etag_len;
